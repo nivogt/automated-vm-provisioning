@@ -53,7 +53,7 @@
         " netcfg/choose_interface=ens192",
         " nameserver={{user `dns_1`}}",
         " nameserver={{user `dns_2`}}",
-        " ks=https://kickstart-eddy.archi.monext.fr/{{user `server_ip`}}",
+        " ks=https://mykickstart.mydomain/{{user `server_ip`}}",
         "<enter><wait>"
       ]
     }
