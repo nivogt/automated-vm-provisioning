@@ -1,0 +1,25 @@
+global:
+    Namespace: xxx
+
+# VM builder
+builder:
+    ContainerName: 	consumer
+    NumberOfReplicas: 	1
+    DataVaultMountPoint: xxxxx
+    DataVaultRole: 	xxxxx
+    ServiceAccountName: xxxxx
+    Image: 		myregistry/myimage:latest
+    MemoryRequest: 	800Mi
+    CpuRequest: 	0.4
+    MemoryLimit: 	900Mi
+    CpuLimit: 		0.6
+    Env:
+        QUEUE_SERVER: 	  xxxxx
+        QUEUE_PORT: 	  xxxxx
+        QUEUE_IN: 	  BUILD_IN
+        QUEUE_OUT: 	  BUILD_OUT
+        QUEUE_USER: 	  xxxxx
+        QUEUE_PASS: 	  xxxxx
+        VSPHERE_SERVER:   xxxxx
+        VSPHERE_USER: 	  xxxxx
+        VSPHERE_PASSWORD: xxxxx

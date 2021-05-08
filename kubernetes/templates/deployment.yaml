@@ -1,0 +1,210 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.builder.ContainerName }}-deployment
+  labels:
+    app: {{ .Values.builder.ContainerName }}
+  namespace: {{ .Values.global.Namespace }}
+spec:
+  replicas: {{ default 1 .Values.builder.NumberOfReplicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.builder.ContainerName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.builder.ContainerName }}
+      {{ if .Values.builder.DataVaultMountPoint }}
+      annotations:
+        vault.security.banzaicloud.io/vault-path: {{ .Values.builder.DataVaultMountPoint }}
+        vault.security.banzaicloud.io/vault-role: {{ .Values.builder.DataVaultRole}}
+      {{ end }}
+    spec:
+      serviceAccountName: {{  default "eddy" .Values.builder.ServiceAccountName }}
+      containers:
+      - name: {{ .Values.builder.ContainerName }}
+        image: {{ .Values.builder.Image }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ default "800Mi" .Values.builder.MemoryRequest }}
+            cpu:  {{ default "0.4" .Values.builder.CpuRequest }}
+          limits:
+            memory: {{ default "900Mi" .Values.builder.MemoryLimit }}
+            cpu: {{ default "0.6" .Values.builder.CpuLimit }}
+        readinessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - ps aux | grep python3 | grep -v grep
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - ps aux | grep python3 | grep -v grep
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 15
+        env:
+          - name: "QUEUE_USER"
+            value: "{{ .Values.builder.Env.QUEUE_USER }}"
+          - name: "QUEUE_PASS"
+            value: "{{ .Values.builder.Env.QUEUE_PASS }}"
+          - name: "QUEUE_SERVER"
+            value: "{{ .Values.builder.Env.QUEUE_SERVER }}"
+          - name: "QUEUE_PORT"
+            value: "{{ .Values.builder.Env.QUEUE_PORT }}"
+          - name: "QUEUE_IN"
+            value: "{{ .Values.builder.Env.QUEUE_IN }}"
+          - name: "QUEUE_OUT"
+            value: "{{ .Values.builder.Env.QUEUE_OUT }}"
+          - name: "VSPHERE_SERVER"
+            value: "{{ .Values.builder.Env.VSPHERE_SERVER }}"
+          - name: "VSPHERE_USER"
+            value: "{{ .Values.builder.Env.VSPHERE_USER }}"
+          - name: "VSPHERE_PASSWORD"
+            value: "{{ .Values.builder.Env.VSPHERE_PASSWORD }}"
+          - name: PACKER_LOG
+            value: "1"
+          - name: PACKER_LOG_PATH
+            value: "/var/log/packer.log"
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.kickstarter.ContainerName }}-deployment
+  labels:
+    app: {{ .Values.kickstarter.ContainerName }}
+  namespace: {{ .Values.global.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.kickstarter.ContainerName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.kickstarter.ContainerName }}
+      {{ if .Values.kickstarter.DataVaultMountPoint }}
+      annotations:
+        vault.security.banzaicloud.io/vault-path: {{ .Values.kickstarter.DataVaultMountPoint }}
+        vault.security.banzaicloud.io/vault-role: {{ .Values.kickstarter.DataVaultRole}}
+      {{ end }}
+    spec:
+      serviceAccountName: {{  default "eddy" .Values.kickstarter.ServiceAccountName }}
+      containers:
+      - name: {{ .Values.kickstarter.ContainerName }}
+        image: {{ .Values.kickstarter.Image }}
+        imagePullPolicy: Always
+        ports:
+          - containerPort: {{ .Values.kickstarter.flaskPort }}
+            name: flask
+            protocol: TCP
+        resources:
+          requests:
+            memory: {{ default "800Mi" .Values.kickstarter.MemoryRequest }}
+            cpu:  {{ default "0.4" .Values.kickstarter.CpuRequest }}
+          limits:
+            memory: {{ default "900Mi" .Values.kickstarter.MemoryLimit }}
+            cpu: {{ default "0.6" .Values.kickstarter.CpuLimit }}
+        readinessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          tcpSocket:
+            port: {{ .Values.kickstarter.flaskPort }}
+        livenessProbe:
+          periodSeconds: 60
+          tcpSocket:
+            port: {{ .Values.kickstarter.flaskPort }}
+        env:
+        - name: "ANSIBLE_USER"
+          value: "{{ .Values.builder.Env.ANSIBLE_USER }}"
+        - name: "ANSIBLE_SSH_PUB_KEY"
+          value:  "{{ .Values.builder.Env.ANSIBLE_SSH_PUB_KEY }}"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.ansible.ContainerName }}-deployment
+  labels:
+    app: {{ .Values.ansible.ContainerName }}
+  namespace: {{ .Values.global.Namespace }}
+spec:
+  replicas: {{ default 1 .Values.ansible.NumberOfReplicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.ansible.ContainerName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.ansible.ContainerName }}
+      {{ if .Values.ansible.DataVaultMountPoint }}
+      annotations:
+        vault.security.banzaicloud.io/vault-path: {{ .Values.ansible.DataVaultMountPoint }}
+        vault.security.banzaicloud.io/vault-role: {{ .Values.ansible.DataVaultRole}}
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.ansible.DataVaultRole}}
+        vault.hashicorp.com/agent-inject-secret-bundle: {{ .Values.ansible.DataVaultMountPoint }}
+        vault.hashicorp.com/secret-volume-path-bundle: /certs
+        vault.hashicorp.com/agent-inject-file-bundle: ca_bundle.pem        
+        vault.hashicorp.com/agent-inject-secret-bundle: {{ .Values.ansible.Env.ANSIBLE_CA_BUNDLE  }}
+      {{ end }}
+    spec:
+      serviceAccountName: {{ .Values.ansible.ServiceAccountName }}
+      containers:
+      - name: {{ .Values.ansible.ContainerName }}
+        image: {{ .Values.ansible.Image }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ default "800Mi" .Values.ansible.MemoryRequest }}
+            cpu:  {{ default "0.4" .Values.ansible.CpuRequest }}
+          limits:
+            memory: {{ default "900Mi" .Values.ansible.MemoryLimit }}
+            cpu: {{ default "0.6" .Values.ansible.CpuLimit }}
+        readinessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - ps aux | grep python3 | grep -v grep
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - ps aux | grep python3 | grep -v grep
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 15
+        env:
+          - name: "QUEUE_USER"
+            value: "{{ .Values.ansible.Env.QUEUE_USER }}"
+          - name: "QUEUE_PASS"
+            value: "{{ .Values.ansible.Env.QUEUE_PASS }}"
+          - name: "QUEUE_SERVER"
+            value: "{{ .Values.ansible.Env.QUEUE_SERVER }}"
+          - name: "QUEUE_PORT"
+            value: "{{ .Values.ansible.Env.QUEUE_PORT }}"
+          - name: "QUEUE_IN"
+            value: "{{ .Values.ansible.Env.QUEUE_IN }}"
+          - name: "QUEUE_OUT"
+            value: "{{ .Values.ansible.Env.QUEUE_OUT }}"
+          - name: "ANSIBLE_API_URL"
+            value: "{{ .Values.ansible.Env.ANSIBLE_API_URL }}"
+          - name: "ANSIBLE_API_TOKEN"
+            value: "{{ .Values.ansible.Env.ANSIBLE_API_TOKEN }}"
+          - name: "REQUESTS_CA_BUNDLE"
+            value: "/certs/ca_bundle.pem"
+          - name: "JOB_TEMPLATE"
+            value: "{{ .Values.ansible.Env.JOB_TEMPLATE }}"

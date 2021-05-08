@@ -1,0 +1,6 @@
+apiVersion: v2
+name: myapp
+version: 0.1.0
+description: Automated vm creation process
+type: application
+kubeVersion: 1.16.10
