@@ -1,0 +1,61 @@
+{
+  "builders": [
+    {
+      "type": "vsphere-iso",
+  
+      "vcenter_server": "{{user `vsphere-server`}}",
+      "username": "{{user `vsphere-user`}}",
+      "password": "{{user `vsphere-password`}}",
+      "insecure_connection": "true",
+      "datacenter": "{{user `vsphere-datacenter`}}",
+
+      "cluster": "{{user `vsphere-cluster`}}",
+      "host": "{{user `vsphere-host`}}",
+      "datastore": "{{user `vsphere-datastore`}}",
+
+      "vm_name": "{{user `vm-name`}}",
+      "folder": "{{user `folder`}}",
+      "notes": "Build via Packer",
+      "guest_os_type": "{{user `guest-os-type` }}",
+      
+      "boot_wait": "10s",
+      "boot_order": "disk,cdrom",
+
+      "communicator": "none",
+      "shutdown_command": "shutdown",
+      "shutdown_timeout": "15m",
+
+      "CPUs": "{{user `vm-cpu-num`}}",
+      "RAM": "{{user `vm-mem-size`}}",
+      "RAM_reserve_all": false,
+      "disk_controller_type": "lsilogic-sas",
+      "storage" : [
+        {
+          "disk_size": "{{user `vm-disk-size`}}",
+          "disk_thin_provisioned": true
+        }
+      ],
+      "network_adapters": [
+        {
+          "network": "{{user `vm-network`}}",
+          "network_card": "vmxnet3"
+        }
+      ],
+   
+      "convert_to_template": false,
+
+      "iso_paths": ["{{user `iso_url`}}"],
+      "boot_command":
+       [
+        "<tab> text",
+        " inst.noverifyssl",
+        " ip={{user `server_ip`}}::{{user `server_gw`}}:{{user `server_mask`}}:{{user `vm-name`}}:ens192:none",
+        " netcfg/choose_interface=ens192",
+        " nameserver={{user `dns_1`}}",
+        " nameserver={{user `dns_2`}}",
+        " ks=https://kickstart-eddy.archi.monext.fr/{{user `server_ip`}}",
+        "<enter><wait>"
+      ]
+    }
+  ]
+}
