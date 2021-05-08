@@ -21,7 +21,7 @@ spec:
         vault.security.banzaicloud.io/vault-role: {{ .Values.builder.DataVaultRole}}
       {{ end }}
     spec:
-      serviceAccountName: {{  default "eddy" .Values.builder.ServiceAccountName }}
+      serviceAccountName: {{ .Values.builder.ServiceAccountName }}
       containers:
       - name: {{ .Values.builder.ContainerName }}
         image: {{ .Values.builder.Image }}
